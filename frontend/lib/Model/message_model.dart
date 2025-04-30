@@ -24,10 +24,9 @@ class Message {
       sender: User.fromJson(json['sender']),
       receiver: User.fromJson(json['receiver']),
       content: json['content'] ?? '',
-      createdAt:
-          json['createdAt'] != null
-              ? DateTime.parse(json['createdAt'])
-              : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
       read: json['read'] ?? false,
     );
   }
