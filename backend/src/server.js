@@ -54,9 +54,22 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = function (req, file, cb) {
-    const allowedTypes = ['image/jpeg', 'image/png'];
-    if (allowedTypes.includes(file.mimetype)) cb(null, true);
-    else cb(new Error("Only JPEG and PNG format for Images are Allowed"), false);
+    // Expand the list of allowed types and make case insensitive checks
+    const allowedTypes = [
+        'image/jpeg', 
+        'image/jpg', 
+        'image/png', 
+        'image/pjpeg' // Some older browsers send this for JPG
+    ];
+    
+    // Log the mimetype for debugging
+    console.log('Uploaded file mimetype:', file.mimetype);
+    
+    if (allowedTypes.includes(file.mimetype.toLowerCase())) {
+        cb(null, true);
+    } else {
+        cb(new Error(`Invalid file type. Only JPEG, JPG and PNG formats are allowed. Received: ${file.mimetype}`), false);
+    }
 }
 
 const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
@@ -220,8 +233,23 @@ app.post('/login', async (req, res) => {
 });
 
 // Upload profile picture
-app.put('/profile-picture', auth, upload.single('image'), async (req, res) => {
+app.put('/profile-picture', auth, (req, res, next) => {
+    upload.single('image')(req, res, function(err) {
+        if (err) {
+            console.error('Upload error:', err.message);
+            return res.status(400).json({ error: err.message });
+        }
+        
+        // Continue with the rest of the handler if no error
+        next();
+    });
+}, async (req, res) => {
     try {
+        // Make sure file was uploaded
+        if (!req.file) {
+            return res.status(400).json({ error: "No image file provided" });
+        }
+        
         const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
         const user = await User.findByIdAndUpdate(
             req.user.id,

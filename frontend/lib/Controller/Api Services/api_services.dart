@@ -6,6 +6,7 @@ import 'package:frontend/Model/conversation_model.dart';
 import 'package:frontend/Model/message_model.dart';
 import 'package:frontend/Model/user_model.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class ApiServices {
   String? baseUrl;
@@ -91,13 +92,32 @@ class ApiServices {
       final token = await this.token;
       request.headers['Authorization'] = 'Bearer $token';
 
-      // Add file to request
+      // Get the mime type from the file extension
+      String mimeType = 'image/jpeg'; // Default to jpeg
+      final fileExtension = imageFile.path.split('.').last.toLowerCase();
+      if (fileExtension == 'png') {
+        mimeType = 'image/png';
+      } else if (fileExtension == 'jpg' || fileExtension == 'jpeg') {
+        mimeType = 'image/jpeg';
+      }
+
+      // Add file to request with explicit content type
       request.files.add(
-        await http.MultipartFile.fromPath('image', imageFile.path),
+        http.MultipartFile(
+          'image',
+          imageFile.readAsBytes().asStream(),
+          await imageFile.length(),
+          filename: imageFile.path.split('/').last,
+          contentType: MediaType.parse(mimeType),
+        ),
       );
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
+
+      // Log response for debugging
+      print('Profile picture upload status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -122,6 +142,7 @@ class ApiServices {
         );
       }
     } catch (e) {
+      print('Error uploading profile picture: $e');
       rethrow;
     }
   }

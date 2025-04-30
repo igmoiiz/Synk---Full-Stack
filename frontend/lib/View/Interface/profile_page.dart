@@ -25,9 +25,34 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (pickedFile != null) {
+        // Check file extension before proceeding
+        final extension = pickedFile.path.split('.').last.toLowerCase();
+        if (extension != 'jpg' && extension != 'jpeg' && extension != 'png') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please select a JPG or PNG image'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
         setState(() {
           _imageFile = File(pickedFile.path);
         });
+
+        // Show loading indicator
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Uploading image...'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
 
         // Upload image
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -37,8 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                authProvider.error ?? 'Failed to update profile picture',
-              ),
+                  authProvider.error ?? 'Failed to update profile picture'),
               backgroundColor: Colors.red,
             ),
           );
@@ -52,10 +76,11 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       }
     } catch (e) {
+      print('Error picking/uploading image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error picking image: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -66,24 +91,23 @@ class _ProfilePageState extends State<ProfilePage> {
   void _logout() {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Logout'),
-            content: const Text('Are you sure you want to logout?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('CANCEL'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Provider.of<AuthProvider>(context, listen: false).logout();
-                },
-                child: const Text('LOGOUT'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Provider.of<AuthProvider>(context, listen: false).logout();
+            },
+            child: const Text('LOGOUT'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -112,20 +136,18 @@ class _ProfilePageState extends State<ProfilePage> {
                   backgroundColor: Theme.of(
                     context,
                   ).primaryColor.withOpacity(0.2),
-                  backgroundImage:
-                      user?.profilePicture != null
-                          ? NetworkImage(user!.profilePicture!)
-                          : null,
-                  child:
-                      user?.profilePicture == null
-                          ? Text(
-                            user?.name?.substring(0, 1).toUpperCase() ?? '?',
-                            style: TextStyle(
-                              fontSize: 48,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                          )
-                          : null,
+                  backgroundImage: user?.profilePicture != null
+                      ? NetworkImage(user!.profilePicture!)
+                      : null,
+                  child: user?.profilePicture == null
+                      ? Text(
+                          user?.name?.substring(0, 1).toUpperCase() ?? '?',
+                          style: TextStyle(
+                            fontSize: 48,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        )
+                      : null,
                 ),
                 Positioned(
                   bottom: 0,
